@@ -1,0 +1,17 @@
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+
+IF OBJECT_ID('dbo.AssetCategory', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.AssetCategory
+  (
+    CategoryID BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_AssetCategory PRIMARY KEY,
+    CategoryName NVARCHAR(30) NOT NULL,
+    Percentage DECIMAL(5, 2) NOT NULL,
+    DepAccountID BIGINT NOT NULL,
+    CreditAccountID BIGINT NOT NULL,
+    Description NVARCHAR(200) NOT NULL
+  );
+END;
+
+COMMIT TRANSACTION;
