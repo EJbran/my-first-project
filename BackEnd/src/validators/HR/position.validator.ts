@@ -39,6 +39,8 @@ export interface CreatePositionPayload {
   jobId: number;
 }
 
+export type UpdatePositionPayload = CreatePositionPayload;
+
 export interface AssignPositionPayload {
   employeeId: number;
   positionId: number;
@@ -279,6 +281,8 @@ export const validateCreatePositionPayload = (
   };
   return errors.length ? { success: false, errors } : { success: true, value };
 };
+
+export const validateUpdatePositionPayload = validateCreatePositionPayload;
 
 export const validateAssignPositionPayload = (
   source: Record<string, unknown>

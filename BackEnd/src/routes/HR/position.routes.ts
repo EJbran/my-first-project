@@ -2,13 +2,15 @@ import express from "express";
 import {
   assignEmployeeToPosition,
   createPosition,
+  deletePosition,
   getCurrentEmployeePosition,
   getPositionById,
   getPositionOptions,
   listPositions,
   listVacantPositions,
   releaseEmployeePosition,
-  transferEmployeePosition
+  transferEmployeePosition,
+  updatePosition
 } from "../../controllers/HR/position.controller";
 import { authenticate } from "../../middleware/authenticate";
 
@@ -27,5 +29,7 @@ router.post("/api/positions/release", authenticate, releaseEmployeePosition);
 router.get("/api/positions", authenticate, listPositions);
 router.get("/api/positions/:positionId", authenticate, getPositionById);
 router.post("/api/positions", authenticate, createPosition);
+router.put("/api/positions/:positionId", authenticate, updatePosition);
+router.delete("/api/positions/:positionId", authenticate, deletePosition);
 
 export default router;

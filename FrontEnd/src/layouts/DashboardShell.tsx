@@ -33,6 +33,8 @@ const FULL_WIDTH_DATA_PATHS = new Set([
   "/setup/finance/chart-groups",
   "/setup/finance/chart-of-accounts",
   "/setup/finance/account-mappings",
+  "/setup/finance/asset-categories",
+  "/setup/finance/assets",
   "/setup/hr/time-sheet-codes",
   "/setup/hr/holidays",
   "/afe/afes",

@@ -70,6 +70,12 @@ export interface CreatePositionPayload {
   jobId: number;
 }
 
+export type UpdatePositionPayload = CreatePositionPayload;
+
+export interface DeletePositionResult {
+  positionId: number;
+}
+
 export interface SetEmployeePositionPayload {
   employeeId: number;
   positionId: number;

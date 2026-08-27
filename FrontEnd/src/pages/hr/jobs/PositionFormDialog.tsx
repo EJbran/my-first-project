@@ -27,13 +27,14 @@ import { z } from "zod";
 import { jobsApi } from "../../../api/jobs.api";
 import { positionsApi } from "../../../api/positions.api";
 import type { JobOption } from "../../../types/job.types";
-import type { CreatePositionPayload, PositionRecord, PositionResponse } from "../../../types/position.types";
+import type { CreatePositionPayload, PositionRecord, PositionResponse, UpdatePositionPayload } from "../../../types/position.types";
 import { getHrThemeVars } from "./Theme";
 
 type PositionFormDialogProps = {
   open: boolean;
   onClose: () => void;
-  onCreated: (position: PositionRecord) => void;
+  position?: PositionRecord | null;
+  onSaved: (position: PositionRecord) => void;
 };
 
 const schema = z.object({
@@ -75,7 +76,7 @@ const getRequestError = (error: unknown): string => {
 
 const jobLabel = (job: JobOption): string => `${job.Job_Name_EN} · JOB-${String(job.JobId).padStart(6, "0")}`;
 
-export default function PositionFormDialog({ open, onClose, onCreated }: PositionFormDialogProps) {
+export default function PositionFormDialog({ open, onClose, position, onSaved }: PositionFormDialogProps) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const queryClient = useQueryClient();
@@ -90,6 +91,7 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
     reset,
     formState: { errors }
   } = useForm<PositionFormValues>({ resolver: zodResolver(schema), defaultValues: emptyValues() });
+  const isEditing = Boolean(position);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setJobSearch(jobSearchDraft.trim()), 300);
@@ -98,11 +100,22 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
 
   useEffect(() => {
     if (!open) return;
-    reset(emptyValues());
+    reset(position ? {
+      positionNumber: String(position.Position_Number ?? ""),
+      positionType: String(position.Position_Type ?? ""),
+      positionLevel: String(position.PositionLevel ?? ""),
+      positionDegree: String(position.Position_Degree ?? ""),
+      positionDateCreation: String(position.Position_DateCreation ?? today()).slice(0, 10),
+      status: String(position.Status ?? "Active"),
+      jobId: String(position.JobId ?? "")
+    } : emptyValues());
     setSubmitError(null);
-    setJobSearchDraft("");
-    setJobSearch("");
-  }, [open, reset]);
+    const initialJobSearch = position?.JobId
+      ? jobLabel({ JobId: position.JobId, Job_Name_EN: position.Job_Name_EN ?? "", Job_Name_AR: position.Job_Name_AR ?? "", Job_Family: position.Job_Family ?? "" })
+      : "";
+    setJobSearchDraft(initialJobSearch);
+    setJobSearch(initialJobSearch);
+  }, [open, position, reset]);
 
   const [positionOptionsQuery, jobOptionsQuery] = [
     useQuery({
@@ -119,8 +132,8 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
     })
   ];
 
-  const mutation = useMutation<PositionResponse<PositionRecord>, unknown, CreatePositionPayload>({
-    mutationFn: positionsApi.create
+  const mutation = useMutation<PositionResponse<PositionRecord>, unknown, { id?: number; payload: CreatePositionPayload | UpdatePositionPayload }>({
+    mutationFn: ({ id, payload }) => id ? positionsApi.update(id, payload) : positionsApi.create(payload)
   });
 
   const positionOptions = positionOptionsQuery.data?.success ? positionOptionsQuery.data.data : null;
@@ -134,13 +147,16 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
     setSubmitError(null);
     try {
       const result = await mutation.mutateAsync({
-        positionNumber: values.positionNumber,
-        positionType: values.positionType,
-        positionLevel: values.positionLevel,
-        positionDegree: values.positionDegree,
-        positionDateCreation: values.positionDateCreation,
-        status: values.status,
-        jobId: Number(values.jobId)
+        id: position?.PositionId,
+        payload: {
+          positionNumber: values.positionNumber,
+          positionType: values.positionType,
+          positionLevel: values.positionLevel,
+          positionDegree: values.positionDegree,
+          positionDateCreation: values.positionDateCreation,
+          status: values.status,
+          jobId: Number(values.jobId)
+        }
       });
       if (!result.success) {
         setSubmitError(result.errors?.join(". ") || result.message);
@@ -154,7 +170,7 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
         queryClient.invalidateQueries({ queryKey: ["hr", "hr-dashboard"] })
       ]);
       enqueueSnackbar(result.message || "Position created successfully", { variant: "success" });
-      onCreated(result.data);
+      onSaved(result.data);
       onClose();
     } catch (error) {
       setSubmitError(getRequestError(error));
@@ -202,8 +218,8 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
           <Stack direction="row" spacing={1.4} minWidth={0}>
             <Box sx={{ width: 40, height: 40, display: "grid", placeItems: "center", borderRadius: "11px", color: "var(--hr-accent)", bgcolor: "var(--hr-selected)" }}><AddBusinessRoundedIcon /></Box>
             <Box minWidth={0}>
-              <Typography sx={{ color: "var(--hr-text)", fontSize: 18, fontWeight: 900 }}>Add New Position</Typography>
-              <Typography sx={{ mt: 0.3, color: "var(--hr-muted)", fontSize: 11.5 }}>Create an organizational slot connected to its official job profile.</Typography>
+              <Typography sx={{ color: "var(--hr-text)", fontSize: 18, fontWeight: 900 }}>{isEditing ? "Edit Position" : "Add New Position"}</Typography>
+              <Typography sx={{ mt: 0.3, color: "var(--hr-muted)", fontSize: 11.5 }}>{isEditing ? "Update the position record and its official job profile." : "Create an organizational slot connected to its official job profile."}</Typography>
             </Box>
           </Stack>
           <IconButton aria-label="Close add position dialog" onClick={close} disabled={mutation.isPending}><CloseRoundedIcon /></IconButton>
@@ -248,7 +264,7 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
           <Box sx={{ gridColumn: { sm: "1 / -1" }, display: "flex", alignItems: "flex-start", gap: 1, p: 1.25, border: "1px solid var(--hr-accent-border)", borderRadius: "9px", color: "var(--hr-accent)", bgcolor: "var(--hr-selected)" }}>
             <InfoOutlinedIcon sx={{ mt: 0.1, fontSize: 18 }} />
             <Typography sx={{ color: "var(--hr-strong-muted)", fontSize: 10.5, lineHeight: 1.5 }}>
-              A new position is vacant by default. Assign it later from an employee profile, where occupancy checks are applied safely.
+              {isEditing ? "Employee assignment is preserved while position details are updated." : "A new position is vacant by default. Assign it later from an employee profile, where occupancy checks are applied safely."}
             </Typography>
           </Box>
         </Box>
@@ -256,7 +272,7 @@ export default function PositionFormDialog({ open, onClose, onCreated }: Positio
       <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, borderTop: "1px solid var(--hr-border)" }}>
         <Button onClick={close} disabled={mutation.isPending} sx={{ textTransform: "none" }}>Cancel</Button>
         <Button type="submit" form="hr-position-form" variant="contained" disabled={mutation.isPending} startIcon={mutation.isPending ? <CircularProgress size={16} color="inherit" /> : <AddBusinessRoundedIcon />} sx={{ minWidth: 145, bgcolor: "var(--hr-primary-button)", color: "var(--hr-on-accent)", textTransform: "none" }}>
-          {mutation.isPending ? "Creating..." : "Create Position"}
+          {mutation.isPending ? (isEditing ? "Saving..." : "Creating...") : (isEditing ? "Save Changes" : "Create Position")}
         </Button>
       </DialogActions>
     </Dialog>

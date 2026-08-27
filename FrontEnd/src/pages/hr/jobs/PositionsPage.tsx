@@ -1,6 +1,8 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import BusinessCenterRoundedIcon from "@mui/icons-material/BusinessCenterRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
@@ -52,7 +54,7 @@ import {
   Typography
 } from "@mui/material";
 import type { SvgIconComponent } from "@mui/icons-material";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { jobsApi } from "../../../api/jobs.api";
@@ -161,6 +163,7 @@ export default function PositionsPage() {
   const { positionId: positionIdParam } = useParams<{ positionId?: string }>();
   const [urlParams, setUrlParams] = useSearchParams();
   const selectedPositionId = positionIdParam && /^[1-9]\d*$/.test(positionIdParam) ? Number(positionIdParam) : null;
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(() => numberParam(urlParams.get("page"), 1));
   const [pageSize, setPageSize] = useState(() => PAGE_SIZE_OPTIONS.includes(numberParam(urlParams.get("pageSize"), 10)) ? numberParam(urlParams.get("pageSize"), 10) : 10);
   const [searchDraft, setSearchDraft] = useState(() => urlParams.get("search") ?? "");
@@ -179,10 +182,21 @@ export default function PositionsPage() {
   const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(() => new Set(DEFAULT_VISIBLE_COLUMNS));
   const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [formOpen, setFormOpen] = useState(false);
+  const [editingPosition, setEditingPosition] = useState<PositionRecord | null>(null);
   const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null);
   const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; position: PositionRecord } | null>(null);
   const [toast, setToast] = useState("");
   const [loadedAt, setLoadedAt] = useState(() => new Date());
+  const deleteMutation = useMutation({
+    mutationFn: (positionId: number) => positionsApi.remove(positionId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["hr", "positions", "list"] }),
+        queryClient.invalidateQueries({ queryKey: ["hr", "positions", "options"] }),
+        queryClient.invalidateQueries({ queryKey: ["hr", "hr-dashboard"] })
+      ]);
+    }
+  });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -284,6 +298,36 @@ export default function PositionsPage() {
   const onCreated = (position: PositionRecord) => {
     setPage(1);
     navigate(`/human-resources/jobs/positions/${position.PositionId}`);
+  };
+
+  const onSaved = (position: PositionRecord) => {
+    setFormOpen(false);
+    setEditingPosition(null);
+    navigate(`/human-resources/jobs/positions/${position.PositionId}`);
+  };
+
+  const editPosition = (position: PositionRecord) => {
+    setEditingPosition(position);
+    setFormOpen(true);
+    setRowMenu(null);
+  };
+
+  const deletePosition = (position: PositionRecord) => {
+    if (position.EmployeeId) {
+      setToast("Occupied positions cannot be deleted.");
+      setRowMenu(null);
+      return;
+    }
+    if (!window.confirm(`Delete ${positionCode(position.PositionId)}? This action cannot be undone.`)) return;
+    void deleteMutation.mutateAsync(position.PositionId).then((result) => {
+      if (!result.success) {
+        setToast(result.errors?.join(". ") || result.message);
+        return;
+      }
+      setToast(result.message || "Position deleted successfully.");
+      if (selectedPositionId === position.PositionId) closeDetails();
+    }).catch(() => setToast("The position could not be deleted."));
+    setRowMenu(null);
   };
 
   const rangeLabel = useMemo(() => {
@@ -490,15 +534,17 @@ export default function PositionsPage() {
 
       <Menu anchorEl={rowMenu?.anchor ?? null} open={Boolean(rowMenu)} onClose={() => setRowMenu(null)} slotProps={{ paper: { sx: { minWidth: 210, border: "1px solid var(--hr-border)", borderRadius: "10px", boxShadow: "var(--hr-shadow)" } } }}>
         <MenuItem onClick={() => rowMenu && selectPosition(rowMenu.position)}><ListItemIcon><OpenInNewRoundedIcon fontSize="small" /></ListItemIcon><ListItemText primary="Open position details" primaryTypographyProps={{ fontSize: 11.5, fontWeight: 700 }} /></MenuItem>
+        <MenuItem onClick={() => rowMenu && editPosition(rowMenu.position)}><ListItemIcon><EditOutlinedIcon fontSize="small" /></ListItemIcon><ListItemText primary="Edit position" primaryTypographyProps={{ fontSize: 11.5, fontWeight: 700 }} /></MenuItem>
         {rowMenu?.position.JobId ? <MenuItem component={RouterLink} to={`/human-resources/jobs/catalog/${rowMenu.position.JobId}`} onClick={() => setRowMenu(null)}><ListItemIcon><BusinessCenterRoundedIcon fontSize="small" /></ListItemIcon><ListItemText primary="Open job profile" primaryTypographyProps={{ fontSize: 11.5, fontWeight: 700 }} /></MenuItem> : null}
         {rowMenu?.position.EmployeeId ? <MenuItem component={RouterLink} to={`/human-resources/employees/employee-profile/${rowMenu.position.EmployeeId}`} onClick={() => setRowMenu(null)}><ListItemIcon><PersonOutlineRoundedIcon fontSize="small" /></ListItemIcon><ListItemText primary="Open employee profile" primaryTypographyProps={{ fontSize: 11.5, fontWeight: 700 }} /></MenuItem> : null}
         <MenuItem onClick={() => rowMenu && void copyPositionCode(rowMenu.position)}><ListItemIcon><ContentCopyRoundedIcon fontSize="small" /></ListItemIcon><ListItemText primary="Copy Position ID" primaryTypographyProps={{ fontSize: 11.5, fontWeight: 700 }} /></MenuItem>
+        <MenuItem disabled={deleteMutation.isPending} onClick={() => rowMenu && deletePosition(rowMenu.position)}><ListItemIcon><DeleteOutlineRoundedIcon fontSize="small" /></ListItemIcon><ListItemText primary="Delete position" primaryTypographyProps={{ fontSize: 11.5, fontWeight: 700 }} /></MenuItem>
       </Menu>
 
       <Snackbar open={Boolean(toast)} autoHideDuration={2600} onClose={() => setToast("")} message={toast} />
 
       {selectedPositionId ? <Suspense fallback={<Box sx={{ minHeight: 140, display: "grid", placeItems: "center" }}><CircularProgress size={24} /></Box>}><PositionDetailsPanel positionId={selectedPositionId} onClose={closeDetails} /></Suspense> : null}
-      {formOpen ? <Suspense fallback={null}><PositionFormDialog open={formOpen} onClose={() => setFormOpen(false)} onCreated={onCreated} /></Suspense> : null}
+      {formOpen ? <Suspense fallback={null}><PositionFormDialog open={formOpen} position={editingPosition} onClose={() => { setFormOpen(false); setEditingPosition(null); }} onSaved={editingPosition ? onSaved : onCreated} /></Suspense> : null}
     </Box>
   );
 }

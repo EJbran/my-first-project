@@ -3,6 +3,7 @@ import {
   parsePositionListQuery,
   validateAssignPositionPayload,
   validateCreatePositionPayload,
+  validateUpdatePositionPayload,
   validateReleasePositionPayload,
   validateTransferPositionPayload,
   type PositionSortDirection,
@@ -606,6 +607,88 @@ export const createPosition = async (
       message: "Vacant position created successfully",
       data: result.data
     });
+  } catch (error) {
+    return handlePositionMutationError(error, res, next);
+  }
+};
+
+export const updatePosition = async (
+  req: RequestLike,
+  res: ResponseLike,
+  next: NextLike
+) => {
+  const parsedPositionId = parsePathId(req.params?.positionId, "Position ID");
+  if (!parsedPositionId.success) return res.status(400).json({ success: false, message: parsedPositionId.message });
+  const parsed = validateUpdatePositionPayload(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ success: false, errors: parsed.errors });
+
+  try {
+    const result = await sequelize.transaction(async (transaction: Transaction) => {
+      await acquirePositionMutationLock(transaction);
+      const existing = await lockPosition(parsedPositionId.value, transaction);
+      if (!existing) return { outcome: "not-found" as const };
+
+      const jobRows = await sequelize.query(
+        `SELECT TOP (1) [Job_ID], [Job_Name_AR], [Job_Name_EN]
+         FROM [dbo].[jobs] WITH (UPDLOCK, HOLDLOCK) WHERE [Job_ID] = :jobId;`,
+        { replacements: { jobId: parsed.value.jobId }, type: QueryTypes.SELECT, raw: true, transaction }
+      ) as JobTitleRow[];
+      if (!jobRows[0]) return { outcome: "job-not-found" as const };
+
+      const lineLevelDescription = deriveLineLevelEnglishDescription(jobRows[0].Job_Name_EN, jobRows[0].Job_Name_AR);
+      const lineLevelRows = await sequelize.query(
+        `SELECT TOP (1) [Line_ID] FROM [dbo].[LineLevel] WITH (HOLDLOCK)
+         WHERE LTRIM(RTRIM([EnglishDescription])) = :lineLevelDescription;`,
+        { replacements: { lineLevelDescription }, type: QueryTypes.SELECT, raw: true, transaction }
+      ) as LineLevelRow[];
+      const lineLevelId = Number(lineLevelRows[0]?.Line_ID);
+      if (!Number.isSafeInteger(lineLevelId) || lineLevelId <= 0) {
+        return { outcome: "line-level-not-found" as const, lineLevelDescription };
+      }
+
+      await sequelize.query(
+        `UPDATE [dbo].[Position]
+         SET [Position_Number] = :positionNumber, [PositionLevel] = :positionLevel,
+             [Position_Degree] = :positionDegree, [Position_DateCreation] = :positionDateCreation,
+             [Status] = :status, [Position_Type] = :positionType,
+             [Job_ID] = :jobId, [LineLevelId] = :lineLevelId
+         WHERE [Id] = :positionId;`,
+        { replacements: { ...parsed.value, positionId: parsedPositionId.value, lineLevelId }, type: QueryTypes.UPDATE, transaction }
+      );
+      return { outcome: "updated" as const, data: (await getPositionRowsById(parsedPositionId.value, transaction))[0] };
+    });
+
+    if (result.outcome === "not-found") return res.status(404).json({ success: false, message: "Position not found" });
+    if (result.outcome === "job-not-found") return res.status(404).json({ success: false, message: "Job not found", code: "JOB_NOT_FOUND" });
+    if (result.outcome === "line-level-not-found") return res.status(500).json({ success: false, message: `Required line level "${result.lineLevelDescription}" is not configured`, code: "LINE_LEVEL_NOT_CONFIGURED" });
+    return res.status(200).json({ success: true, message: "Position updated successfully", data: result.data });
+  } catch (error) {
+    return handlePositionMutationError(error, res, next);
+  }
+};
+
+export const deletePosition = async (
+  req: RequestLike,
+  res: ResponseLike,
+  next: NextLike
+) => {
+  const parsedPositionId = parsePathId(req.params?.positionId, "Position ID");
+  if (!parsedPositionId.success) return res.status(400).json({ success: false, message: parsedPositionId.message });
+  try {
+    const result = await sequelize.transaction(async (transaction: Transaction) => {
+      await acquirePositionMutationLock(transaction);
+      const existing = await lockPosition(parsedPositionId.value, transaction);
+      if (!existing) return "not-found" as const;
+      if (existing.EmployeeId !== null) return "occupied" as const;
+      await sequelize.query(
+        `DELETE FROM [dbo].[Position] WHERE [Id] = :positionId;`,
+        { replacements: { positionId: parsedPositionId.value }, type: QueryTypes.DELETE, transaction }
+      );
+      return "deleted" as const;
+    });
+    if (result === "not-found") return res.status(404).json({ success: false, message: "Position not found" });
+    if (result === "occupied") return res.status(409).json({ success: false, message: "Occupied positions cannot be deleted", code: "POSITION_OCCUPIED" });
+    return res.status(200).json({ success: true, message: "Position deleted successfully", data: { positionId: parsedPositionId.value } });
   } catch (error) {
     return handlePositionMutationError(error, res, next);
   }

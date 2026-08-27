@@ -29,6 +29,7 @@ import ExitToAppRoundedIcon from "@mui/icons-material/ExitToAppRounded";
 import AssessmentRoundedIcon from "@mui/icons-material/AssessmentRounded";
  import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
  
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
@@ -167,6 +168,16 @@ export const navigation: Navigation = [
             segment: "account-mappings",
             title: "EPSA mapping logic",
             icon: <HubRoundedIcon />
+          },
+          {
+            segment: "asset-categories",
+            title: "Asset Categories",
+            icon: <CategoryOutlinedIcon />
+          },
+          {
+            segment: "assets",
+            title: "Assets",
+            icon: <BusinessRoundedIcon />
           }
         ]
       },

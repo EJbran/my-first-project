@@ -1,11 +1,13 @@
 import type {
   CurrentPosition,
   CreatePositionPayload,
+  DeletePositionResult,
   PositionListParams,
   PositionListResponse,
   PositionOptions,
   PositionRecord,
   PositionResponse,
+  UpdatePositionPayload,
   ReleaseEmployeePositionPayload,
   ReleaseEmployeePositionResult,
   SetEmployeePositionPayload,
@@ -69,6 +71,16 @@ export const positionsApi = {
       "/positions",
       payload
     );
+    return response.data;
+  },
+
+  update: async (positionId: string | number, payload: UpdatePositionPayload): Promise<PositionResponse<PositionRecord>> => {
+    const response = await httpClient.put<PositionResponse<PositionRecord>>(`/positions/${positionId}`, payload);
+    return response.data;
+  },
+
+  remove: async (positionId: string | number): Promise<PositionResponse<DeletePositionResult>> => {
+    const response = await httpClient.delete<PositionResponse<DeletePositionResult>>(`/positions/${positionId}`);
     return response.data;
   },
 
