@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Asset } from "../../model/Finance";
+import { Asset, AssetCategory, Department, SubLocation } from "../../model/Finance";
 import {
   AssetPayload,
   normalizeAssetPayload,
@@ -38,6 +38,33 @@ const listAttributes = [
   "Status"
 ];
 
+
+const categoryInclude = {
+  model: AssetCategory,
+  as: "Category",
+  attributes: ["CategoryID", "CategoryName"]
+};
+const departmentInclude = {
+  model: Department,
+  as: "Department",
+  attributes: [
+    "Id",
+    "DepartmentName_Arabic",
+    "DepartmentName_English"
+  ]
+};
+
+const subLocationInclude = {
+  model: SubLocation,
+  as: "SubLocation",
+  attributes: [
+    "Id",
+    "Name",
+    "Type",
+    "LocationId"
+  ]
+};
+
 export const listAssets = async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
     const search = req.query?.search?.trim();
@@ -55,6 +82,7 @@ export const listAssets = async (req: RequestLike, res: ResponseLike, next: Next
     const rows = await Asset.findAll({
       where,
       attributes: listAttributes,
+      include: [categoryInclude, departmentInclude, subLocationInclude],
       order: [["AssetID", "ASC"]],
       subQuery: false
     });
@@ -67,7 +95,9 @@ export const listAssets = async (req: RequestLike, res: ResponseLike, next: Next
 
 export const getAssetById = async (req: RequestLike, res: ResponseLike, next: NextLike) => {
   try {
-    const row = await Asset.findByPk(Number(req.params?.id));
+    const row = await Asset.findByPk(Number(req.params?.id), {
+      include: [categoryInclude, departmentInclude, subLocationInclude]
+    });
 
     if (!row) {
       return res.status(404).json({ success: false, message: "Asset not found" });
@@ -88,7 +118,8 @@ export const createAsset = async (req: RequestLike, res: ResponseLike, next: Nex
       return res.status(400).json({ success: false, errors });
     }
 
-    const row = await Asset.create(payload as never);
+   const { AssetID: _AssetID, ...createPayload } = payload;
+const row = await Asset.create(createPayload as never);
     return res.status(201).json({ success: true, data: row });
   } catch (error) {
     return next(error);
@@ -112,8 +143,15 @@ export const updateAsset = async (req: RequestLike, res: ResponseLike, next: Nex
       return res.status(400).json({ success: false, errors });
     }
 
-    await row.update(payload);
-    return res.status(200).json({ success: true, data: row });
+    const { AssetID: _AssetID, ...updatePayload } = payload;
+    await row.update(updatePayload as never);
+    
+    // Reload with relationships
+    const updatedRow = await Asset.findByPk(Number(req.params?.id), {
+      include: [categoryInclude, departmentInclude, subLocationInclude]
+    });
+    
+    return res.status(200).json({ success: true, data: updatedRow });
   } catch (error) {
     return next(error);
   }

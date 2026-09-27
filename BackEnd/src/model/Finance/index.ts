@@ -1,12 +1,16 @@
 const { sequelize } = require("../../config/database");
 
-import { Department, Epsa, Location } from "../General";
+import {   Department,
+  Epsa,
+  Location,
+  SubLocation } from "../General";
 import { initAFEModel, AFE } from "./AFE";
 import { initAssetModel, Asset } from "./Asset";
 import { initAssetCategoryModel, AssetCategory } from "./AssetCategory";
 import { initBankModel, Bank } from "./Bank";
 import { initBankGeneralModel, BankGeneral } from "./BankGeneral";
 import { initBankSerialCheckModel, BankSerialCheck } from "./BankSerialCheck";
+import { initCategoryAttributesModel, CategoryAttributes } from "./CategoryAttributes";
 import { initCoaAccountGroupModel, CoaAccountGroup } from "./CoaAccountGroup";
 import { initChartOfAccountsModel, ChartOfAccounts } from "./ChartOfAccounts";
 import {
@@ -15,11 +19,53 @@ import {
 } from "./EpsaDepartmentChartAccount";
 
 initAFEModel(sequelize);
+
 initAssetModel(sequelize);
 initAssetCategoryModel(sequelize);
+Asset.belongsTo(AssetCategory, {
+  foreignKey: "CategoryID",
+  targetKey: "CategoryID",
+  as: "Category",
+  constraints: false
+});
+
+AssetCategory.hasMany(Asset, {
+  foreignKey: "CategoryID",
+  sourceKey: "CategoryID",
+  as: "Assets",
+  constraints: false
+});
+Asset.belongsTo(Department, {
+  foreignKey: "DepartmentID",
+  targetKey: "Id",
+  as: "Department",
+  constraints: false
+});
+
+Department.hasMany(Asset, {
+  foreignKey: "DepartmentID",
+  sourceKey: "Id",
+  as: "Assets",
+  constraints: false
+});
+
+Asset.belongsTo(SubLocation, {
+  foreignKey: "SubLocationID",
+  targetKey: "Id",
+  as: "SubLocation",
+  constraints: false
+});
+SubLocation.hasMany(Asset, {
+  foreignKey: "SubLocationID",
+  sourceKey: "Id",
+  as: "Assets",
+  constraints: false
+});
+
 initBankGeneralModel(sequelize);
 initBankModel(sequelize);
 initBankSerialCheckModel(sequelize);
+initCategoryAttributesModel(sequelize);
 initCoaAccountGroupModel(sequelize);
 initChartOfAccountsModel(sequelize);
 initEpsaDepartmentChartAccountModel(sequelize);
@@ -116,7 +162,10 @@ export {
   Bank,
   BankGeneral,
   BankSerialCheck,
+  CategoryAttributes,
   CoaAccountGroup,
   ChartOfAccounts,
-  EpsaDepartmentChartAccount
+  EpsaDepartmentChartAccount,
+Department,
+SubLocation,
 };

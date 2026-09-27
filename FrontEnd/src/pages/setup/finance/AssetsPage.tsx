@@ -42,19 +42,53 @@ export default function AssetsPage() {
   const openEdit = (asset: Asset) => { setDialogMode("edit"); setEditTarget(asset); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditTarget(null); };
   const handleExport = () => exportToExcel("assets", [
-    { header: "Asset ID", value: (row: Asset) => row.AssetID }, { header: "Asset Code", value: (row: Asset) => row.AssetCode },
-    { header: "Description", value: (row: Asset) => row.AssetDescription }, { header: "Category ID", value: (row: Asset) => row.CategoryID },
-    { header: "Sub-location ID", value: (row: Asset) => row.SubLocationID }, { header: "Department ID", value: (row: Asset) => row.DepartmentID },
-    { header: "Purchase Date", value: (row: Asset) => row.PurchaseDate }, { header: "Inserted Date", value: (row: Asset) => row.InsertedDate },
-    { header: "Purchase Cost", value: (row: Asset) => row.PurchaseCost }, { header: "Book Value", value: (row: Asset) => row.BookValue },
-    { header: "Opening Balance", value: (row: Asset) => row.OpeningBalanceBookValue }, { header: "Depreciation", value: (row: Asset) => row.DepreciationValue },
-    { header: "Net Value", value: (row: Asset) => row.NetValue }, { header: "Responsible ID", value: (row: Asset) => row.ResponsibleID },
-    { header: "Responsible Note", value: (row: Asset) => row.ResponsibleNote ?? "" }, { header: "Status", value: (row: Asset) => row.Status }
+    { header: "Asset ID", value: (row: Asset) => row.AssetID }, 
+    { header: "Asset Code", value: (row: Asset) => row.AssetCode },
+    { header: "Description", value: (row: Asset) => row.AssetDescription }, 
+    { header: "Category", value: (row: Asset) => row.Category?.CategoryName || `ID: ${row.CategoryID}` },
+    { header: "Sub-location", value: (row: Asset) => row.SubLocation?.Name || `ID: ${row.SubLocationID}` }, 
+    { header: "Department", value: (row: Asset) => row.Department?.DepartmentName_English || `ID: ${row.DepartmentID}` },
+    { header: "Purchase Date", value: (row: Asset) => row.PurchaseDate }, 
+    { header: "Inserted Date", value: (row: Asset) => row.InsertedDate },
+    { header: "Purchase Cost", value: (row: Asset) => row.PurchaseCost }, 
+    { header: "Book Value", value: (row: Asset) => row.BookValue },
+    { header: "Opening Balance", value: (row: Asset) => row.OpeningBalanceBookValue }, 
+    { header: "Depreciation", value: (row: Asset) => row.DepreciationValue },
+    { header: "Net Value", value: (row: Asset) => row.NetValue }, 
+    { header: "Responsible ID", value: (row: Asset) => row.ResponsibleID },
+    { header: "Responsible Note", value: (row: Asset) => row.ResponsibleNote ?? "" }, 
+    { header: "Status", value: (row: Asset) => row.Status }
   ], rows);
   const columns = useMemo<GridColDef<Asset>[]>(() => [
     { field: "AssetID", headerName: "ID", width: 90 }, { field: "AssetCode", headerName: "Asset Code", width: 145 },
-    { field: "AssetDescription", headerName: "Description", minWidth: 230, flex: 1 }, { field: "CategoryID", headerName: "Category", width: 105 },
-    { field: "SubLocationID", headerName: "Sub-location", width: 125 }, { field: "DepartmentID", headerName: "Department", width: 120 },
+    { field: "AssetDescription", headerName: "Description", minWidth: 230, flex: 1 }, 
+    { 
+      field: "Category", 
+      headerName: "Category", 
+      width: 105,
+      sortable: false,
+      filterable: false,
+      valueGetter: (value, row) => row.Category?.CategoryName || row.CategoryID,
+      renderCell: (params) => params.row.Category?.CategoryName || `ID: ${params.row.CategoryID}`
+    },
+    { 
+      field: "SubLocation", 
+      headerName: "Sub-location", 
+      width: 125,
+      sortable: false,
+      filterable: false,
+      valueGetter: (value, row) => row.SubLocation?.Name || row.SubLocationID,
+      renderCell: (params) => params.row.SubLocation?.Name || `ID: ${params.row.SubLocationID}`
+    }, 
+    { 
+      field: "Department", 
+      headerName: "Department", 
+      width: 120,
+      sortable: false,
+      filterable: false,
+      valueGetter: (value, row) => row.Department?.DepartmentName_English || row.DepartmentID,
+      renderCell: (params) => params.row.Department?.DepartmentName_English || `ID: ${params.row.DepartmentID}`
+    },
     { field: "PurchaseDate", headerName: "Purchase Date", width: 125 },
     { field: "PurchaseCost", headerName: "Purchase Cost", width: 135, valueFormatter: (value) => money(value) },
     { field: "NetValue", headerName: "Net Value", width: 125, valueFormatter: (value) => money(value) },

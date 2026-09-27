@@ -178,6 +178,16 @@ export const navigation: Navigation = [
             segment: "assets",
             title: "Assets",
             icon: <BusinessRoundedIcon />
+          },
+          {
+            segment: "asset-reports",
+            title: "Asset Reports",
+            icon: <AssessmentRoundedIcon />
+          },
+          {
+            segment: "asset-audit-logs",
+            title: "Asset Audit Logs",
+            icon: <ReceiptLongRoundedIcon />
           }
         ]
       },

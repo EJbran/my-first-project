@@ -35,6 +35,8 @@ import ChartOfAccountsPage from "../pages/setup/finance/ChartOfAccountsPage";
 import AccountMappingsPage from "../pages/setup/finance/AccountMappingsPage";
 import AssetCategoriesPage from "../pages/setup/finance/AssetCategoriesPage";
 import AssetsPage from "../pages/setup/finance/AssetsPage";
+import AssetReportsPage from "../pages/setup/finance/AssetReportsPage";
+
 import TimeSheetCodesPage from "../pages/setup/hr/TimeSheetCodesPage";
 import HolidaysPage from "../pages/setup/hr/HolidaysPage";
 import AFEsPage from "../pages/afe/AFEsPage";
@@ -213,6 +215,8 @@ const routes: RouteObject[] = [
       { path: "setup/finance/account-mappings", element: <AccountMappingsPage /> },
       { path: "setup/finance/asset-categories", element: <AssetCategoriesPage /> },
       { path: "setup/finance/assets", element: <AssetsPage /> },
+      { path: "setup/finance/asset-reports", element: <AssetReportsPage /> },
+      
       { path: "setup/hr/time-sheet-codes", element: <TimeSheetCodesPage /> },
       { path: "setup/hr/holidays", element: <HolidaysPage /> },
       { path: "afe/afes", element: <AFEsPage /> },

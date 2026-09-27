@@ -1,5 +1,23 @@
 import type { ApiListResponse, ApiResponse } from "./api.types";
 
+export interface AssetCategory {
+  CategoryID: number;
+  CategoryName: string;
+}
+
+export interface Department {
+  Id: number;
+  DepartmentName_Arabic: string;
+  DepartmentName_English: string;
+}
+
+export interface SubLocation {
+  Id: number;
+  Name: string;
+  Type: string | null;
+  LocationId: number;
+}
+
 export interface Asset {
   AssetID: number;
   AssetCode: string;
@@ -17,6 +35,9 @@ export interface Asset {
   ResponsibleID: number;
   ResponsibleNote: string | null;
   Status: string;
+  Category?: AssetCategory;
+  Department?: Department;
+  SubLocation?: SubLocation;
 }
 
 export interface AssetPayload {

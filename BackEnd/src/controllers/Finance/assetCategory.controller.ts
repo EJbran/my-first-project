@@ -112,7 +112,11 @@ export const updateAssetCategory = async (
       return res.status(400).json({ success: false, errors });
     }
 
-    await row.update(payload);
+    const updatePayload = Object.fromEntries(
+      Object.entries(payload).filter(([_, value]) => value !== null && value !== undefined)
+    );
+
+    await row.update(updatePayload as never);
     return res.status(200).json({ success: true, data: row });
   } catch (error) {
     return next(error);

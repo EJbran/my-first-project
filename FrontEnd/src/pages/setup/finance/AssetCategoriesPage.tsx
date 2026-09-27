@@ -49,6 +49,7 @@ export default function AssetCategoriesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [editTarget, setEditTarget] = useState<AssetCategory | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const query = useQuery({
     queryKey: ["finance", "asset-categories", search.trim()],
@@ -73,15 +74,39 @@ export default function AssetCategoriesPage() {
     setEditTarget(null);
   };
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ["finance", "asset-categories"] });
-  const handleExport = () => {
-    exportToExcel("asset-categories", [
-      { header: "Category ID", value: (row: AssetCategory) => row.CategoryID },
-      { header: "Category Name", value: (row: AssetCategory) => row.CategoryName },
-      { header: "Percentage", value: (row: AssetCategory) => row.Percentage },
-      { header: "Depreciation Account ID", value: (row: AssetCategory) => row.DepAccountID },
-      { header: "Credit Account ID", value: (row: AssetCategory) => row.CreditAccountID },
-      { header: "Description", value: (row: AssetCategory) => row.Description }
-    ], rows);
+  
+  const handleExport = async () => {
+    if (isExporting || rows.length === 0) return;
+
+    try {
+      setIsExporting(true);
+      
+      // Export all visible data
+      const exportData = rows.map((row) => ({
+        CategoryID: row.CategoryID,
+        CategoryName: row.CategoryName,
+        Percentage: row.Percentage,
+        DepAccountID: row.DepAccountID,
+        CreditAccountID: row.CreditAccountID,
+        Description: row.Description
+      }));
+
+      exportToExcel("Asset_Categories", [
+        { header: "Category ID", value: (row: AssetCategory) => row.CategoryID },
+        { header: "Category Name", value: (row: AssetCategory) => row.CategoryName },
+        { header: "Percentage", value: (row: AssetCategory) => row.Percentage, format: (v) => v ? `${Number(v).toFixed(2)}%` : "0%" },
+        { header: "Depreciation Account ID", value: (row: AssetCategory) => row.DepAccountID },
+        { header: "Credit Account ID", value: (row: AssetCategory) => row.CreditAccountID },
+        { header: "Description", value: (row: AssetCategory) => row.Description }
+      ], exportData);
+
+      enqueueSnackbar("Export completed successfully", { variant: "success" });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to export data";
+      enqueueSnackbar(errorMessage, { variant: "error" });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const columns = useMemo<GridColDef<AssetCategory>[]>(() => [
@@ -106,7 +131,14 @@ export default function AssetCategoriesPage() {
     <DataGridToolbar search={search} onSearchChange={setSearch} actions={<Stack direction="row" spacing={1}>
       <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={openCreate}>New Asset Category</Button>
       <Button variant="outlined" startIcon={<RefreshRoundedIcon />} onClick={refresh} disabled={query.isFetching}>Refresh</Button>
-      <Button variant="outlined" startIcon={<FileDownloadRoundedIcon />} onClick={handleExport} disabled={query.isLoading || rows.length === 0}>Export to Excel</Button>
+      <Button 
+        variant="outlined" 
+        startIcon={isExporting ? <CircularProgress size={20} /> : <FileDownloadRoundedIcon />} 
+        onClick={handleExport} 
+        disabled={isExporting || query.isLoading || rows.length === 0}
+      >
+        {isExporting ? "Exporting..." : "Export to Excel"}
+      </Button>
     </Stack>} />
     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Manage depreciation categories and their accounting mappings.</Typography>
     {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}

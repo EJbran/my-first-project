@@ -15,6 +15,7 @@ require("./model/HR/index.ts");
 const authRoutes = require("./routes/Authentication/auth.routes.ts").default;
 const adGroupRoleMappingRoutes = require("./routes/Authentication/adGroupRoleMapping.routes.ts").default;
 const authDomainRoutes = require("./routes/Authentication/authDomain.routes.ts").default;
+
 const locationRoutes = require("./routes/General/location.routes.ts").default;
 const subLocationRoutes = require("./routes/General/subLocation.routes.ts").default;
 const departmentRoutes = require("./routes/General/department.routes.ts").default;
@@ -28,6 +29,7 @@ const accountMappingRoutes = require("./routes/Finance/epsaDepartmentChartAccoun
 const afeRoutes = require("./routes/Finance/afe.routes.ts").default;
 const assetRoutes = require("./routes/Finance/asset.routes.ts").default;
 const assetCategoryRoutes = require("./routes/Finance/assetCategory.routes.ts").default;
+const categoryAttributesRoutes = require("./routes/Finance/categoryAttributes.routes.ts").default;
 const timeSheetCodeRoutes = require("./routes/HR/timeSheetCode.routes.ts").default;
 const holidayRoutes = require("./routes/HR/holiday.routes.ts").default;
 const timesheetRoutes = require("./routes/HR/timesheet.routes.ts").default;
@@ -356,6 +358,7 @@ app.get("/health", (_req, res) => {
 app.use(authRoutes);
 app.use(adGroupRoleMappingRoutes);
 app.use(authDomainRoutes);
+
 app.use(locationRoutes);
 app.use(subLocationRoutes);
 app.use(departmentRoutes);
@@ -369,6 +372,7 @@ app.use(accountMappingRoutes);
 app.use(afeRoutes);
 app.use(assetRoutes);
 app.use(assetCategoryRoutes);
+app.use(categoryAttributesRoutes);
 app.use(timeSheetCodeRoutes);
 app.use(holidayRoutes);
 app.use(timesheetRoutes);
