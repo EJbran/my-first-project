@@ -13,6 +13,7 @@ require("./model/Finance/index.ts");
 require("./model/HR/index.ts");
 
 const authRoutes = require("./routes/Authentication/auth.routes.ts").default;
+const auditLogRoutes = require("./routes/Authentication/auditLog.routes.ts").default;
 const adGroupRoleMappingRoutes = require("./routes/Authentication/adGroupRoleMapping.routes.ts").default;
 const authDomainRoutes = require("./routes/Authentication/authDomain.routes.ts").default;
 
@@ -356,6 +357,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use(authRoutes);
+app.use(auditLogRoutes);
 app.use(adGroupRoleMappingRoutes);
 app.use(authDomainRoutes);
 

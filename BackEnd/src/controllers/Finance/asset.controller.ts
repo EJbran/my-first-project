@@ -1,5 +1,6 @@
 import { Op } from "sequelize";
-import { Asset, AssetCategory, Department, SubLocation } from "../../model/Finance";
+import { Asset, AssetCategory, Department, sequelize, SubLocation } from "../../model/Finance";
+import { recordAudit } from "../Authentication/audit.service";
 import {
   AssetPayload,
   normalizeAssetPayload,
@@ -10,6 +11,9 @@ type RequestLike = {
   params?: Record<string, string>;
   query?: Record<string, string | undefined>;
   body?: Record<string, unknown>;
+  headers?: Record<string, string | string[] | undefined>;
+  ip?: string;
+  user?: { id: number; username: string };
 };
 
 type ResponseLike = {
@@ -118,8 +122,25 @@ export const createAsset = async (req: RequestLike, res: ResponseLike, next: Nex
       return res.status(400).json({ success: false, errors });
     }
 
-   const { AssetID: _AssetID, ...createPayload } = payload;
-const row = await Asset.create(createPayload as never);
+    const { AssetID: _AssetID, ...createPayload } = payload;
+    const row = await sequelize.transaction(async (transaction) => {
+      const created = await Asset.create(createPayload as never, { transaction });
+      await recordAudit({
+        actorUserId: req.user?.id,
+        action: "CREATE",
+        module: "Assets",
+        entityName: "Asset",
+        entityId: String(created.AssetID),
+        newData: created.get({ plain: true }),
+        requestInfo: {
+          ipAddress: req.ip,
+          userAgent: typeof req.headers?.["user-agent"] === "string" ? req.headers["user-agent"] : null,
+          requestId: typeof req.headers?.["x-request-id"] === "string" ? req.headers["x-request-id"] : null
+        },
+        transaction
+      });
+      return created;
+    });
     return res.status(201).json({ success: true, data: row });
   } catch (error) {
     return next(error);
@@ -133,6 +154,7 @@ export const updateAsset = async (req: RequestLike, res: ResponseLike, next: Nex
       return res.status(404).json({ success: false, message: "Asset not found" });
     }
 
+    const oldData = row.get({ plain: true });
     const payload = normalizeAssetPayload({
       ...row.get({ plain: true }),
       ...(req.body || {})
@@ -144,11 +166,27 @@ export const updateAsset = async (req: RequestLike, res: ResponseLike, next: Nex
     }
 
     const { AssetID: _AssetID, ...updatePayload } = payload;
-    await row.update(updatePayload as never);
-    
-    // Reload with relationships
-    const updatedRow = await Asset.findByPk(Number(req.params?.id), {
-      include: [categoryInclude, departmentInclude, subLocationInclude]
+    const updatedRow = await sequelize.transaction(async (transaction) => {
+      await row.update(updatePayload as never, { transaction });
+      await recordAudit({
+        actorUserId: req.user?.id,
+        action: "UPDATE",
+        module: "Assets",
+        entityName: "Asset",
+        entityId: String(row.AssetID),
+        oldData,
+        newData: row.get({ plain: true }),
+        requestInfo: {
+          ipAddress: req.ip,
+          userAgent: typeof req.headers?.["user-agent"] === "string" ? req.headers["user-agent"] : null,
+          requestId: typeof req.headers?.["x-request-id"] === "string" ? req.headers["x-request-id"] : null
+        },
+        transaction
+      });
+      return Asset.findByPk(Number(req.params?.id), {
+        include: [categoryInclude, departmentInclude, subLocationInclude],
+        transaction
+      });
     });
     
     return res.status(200).json({ success: true, data: updatedRow });
@@ -164,7 +202,23 @@ export const deleteAsset = async (req: RequestLike, res: ResponseLike, next: Nex
       return res.status(404).json({ success: false, message: "Asset not found" });
     }
 
-    await row.destroy();
+    await sequelize.transaction(async (transaction) => {
+      await recordAudit({
+        actorUserId: req.user?.id,
+        action: "DELETE",
+        module: "Assets",
+        entityName: "Asset",
+        entityId: String(row.AssetID),
+        oldData: row.get({ plain: true }),
+        requestInfo: {
+          ipAddress: req.ip,
+          userAgent: typeof req.headers?.["user-agent"] === "string" ? req.headers["user-agent"] : null,
+          requestId: typeof req.headers?.["x-request-id"] === "string" ? req.headers["x-request-id"] : null
+        },
+        transaction
+      });
+      await row.destroy({ transaction });
+    });
     return res.status(200).json({ success: true, message: "Asset deleted" });
   } catch (error) {
     return next(error);

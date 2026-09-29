@@ -18,6 +18,7 @@ import AdGroupRoleMappingsPage from "../pages/adGroups/AdGroupRoleMappingsPage";
 import UserSessionsPage from "../pages/sessions/UserSessionsPage";
 import LoginAttemptsPage from "../pages/loginAttempts/LoginAttemptsPage";
 import AuditLogsPage from "../pages/auditLogs/AuditLogsPage";
+import AssetAuditLogsPage from "../pages/auditLogs/AssetAuditLogsPage";
 import AccessRequestsPage from "../pages/accessRequests/AccessRequestsPage";
 import AccessRequestDetailsPage from "../pages/accessRequests/AccessRequestDetailsPage";
 import DelegationsPage from "../pages/delegations/DelegationsPage";
@@ -215,6 +216,7 @@ const routes: RouteObject[] = [
       { path: "setup/finance/account-mappings", element: <AccountMappingsPage /> },
       { path: "setup/finance/asset-categories", element: <AssetCategoriesPage /> },
       { path: "setup/finance/assets", element: <AssetsPage /> },
+      { path: "setup/finance/asset-audit-logs", element: <AssetAuditLogsPage /> },
       { path: "setup/finance/asset-reports", element: <AssetReportsPage /> },
       
       { path: "setup/hr/time-sheet-codes", element: <TimeSheetCodesPage /> },

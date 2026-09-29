@@ -12,25 +12,22 @@ import {
   Chip,
   CircularProgress,
   FormControl,
-  Grid,
-  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   TextField,
-  Tooltip,
   Typography
 } from "@mui/material";
+import Grid from "@mui/material/GridLegacy";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useSnackbar } from "notistack";
 import { assetsApi } from "../../../api/assets.api";
 import { assetCategoriesApi } from "../../../api/assetCategories.api";
-import type { Asset, AssetListResponse } from "../../../types/asset.types";
-import type { AssetCategory } from "../../../types/assetCategory.types";
-import { exportToExcel } from "../../../utils/exportExcel";
+import type { Asset } from "../../../types/asset.types";
+import { exportToExcel, type ExportColumn } from "../../../utils/exportExcel";
 import { DataGridToolbar } from "../../../components/DataGridToolbar";
 
 type ReportType = "all" | "by-category" | "by-all-fields";
@@ -215,7 +212,7 @@ export default function AssetReportsPage() {
     try {
       setIsExporting(true);
 
-      const columns = [
+      const columns: ExportColumn<Asset>[] = [
         { header: "Asset ID", value: (row: Asset) => row.AssetID },
         { header: "Asset Code", value: (row: Asset) => row.AssetCode },
         { header: "Description", value: (row: Asset) => row.AssetDescription },
@@ -224,11 +221,11 @@ export default function AssetReportsPage() {
         { header: "Department", value: (row: Asset) => row.Department?.DepartmentName_English || `ID: ${row.DepartmentID}` },
         { header: "Purchase Date", value: (row: Asset) => row.PurchaseDate },
         { header: "Inserted Date", value: (row: Asset) => row.InsertedDate },
-        { header: "Purchase Cost", value: (row: Asset) => row.PurchaseCost, format: (v) => (v ? Number(v).toFixed(2) : "0.00") },
-        { header: "Book Value", value: (row: Asset) => row.BookValue, format: (v) => (v ? Number(v).toFixed(2) : "0.00") },
-        { header: "Opening Balance", value: (row: Asset) => row.OpeningBalanceBookValue, format: (v) => (v ? Number(v).toFixed(2) : "0.00") },
-        { header: "Depreciation", value: (row: Asset) => row.DepreciationValue, format: (v) => (v ? Number(v).toFixed(2) : "0.00") },
-        { header: "Net Value", value: (row: Asset) => row.NetValue, format: (v) => (v ? Number(v).toFixed(2) : "0.00") },
+        { header: "Purchase Cost", value: (row: Asset) => row.PurchaseCost, format: (value) => (value ? Number(value).toFixed(2) : "0.00") },
+        { header: "Book Value", value: (row: Asset) => row.BookValue, format: (value) => (value ? Number(value).toFixed(2) : "0.00") },
+        { header: "Opening Balance", value: (row: Asset) => row.OpeningBalanceBookValue, format: (value) => (value ? Number(value).toFixed(2) : "0.00") },
+        { header: "Depreciation", value: (row: Asset) => row.DepreciationValue, format: (value) => (value ? Number(value).toFixed(2) : "0.00") },
+        { header: "Net Value", value: (row: Asset) => row.NetValue, format: (value) => (value ? Number(value).toFixed(2) : "0.00") },
         { header: "Responsible ID", value: (row: Asset) => row.ResponsibleID },
         { header: "Responsible Note", value: (row: Asset) => row.ResponsibleNote ?? "" },
         { header: "Status", value: (row: Asset) => row.Status }
@@ -270,7 +267,7 @@ export default function AssetReportsPage() {
         width: 105,
         sortable: false,
         filterable: false,
-        valueGetter: (value, row) => row.Category?.CategoryName || row.CategoryID,
+        valueGetter: (_value, row) => row.Category?.CategoryName || row.CategoryID,
         renderCell: (params) => params.row.Category?.CategoryName || `ID: ${params.row.CategoryID}`
       },
       { 
@@ -279,7 +276,7 @@ export default function AssetReportsPage() {
         width: 125,
         sortable: false,
         filterable: false,
-        valueGetter: (value, row) => row.SubLocation?.Name || row.SubLocationID,
+        valueGetter: (_value, row) => row.SubLocation?.Name || row.SubLocationID,
         renderCell: (params) => params.row.SubLocation?.Name || `ID: ${params.row.SubLocationID}`
       },
       { 
@@ -288,7 +285,7 @@ export default function AssetReportsPage() {
         width: 120,
         sortable: false,
         filterable: false,
-        valueGetter: (value, row) => row.Department?.DepartmentName_English || row.DepartmentID,
+        valueGetter: (_value, row) => row.Department?.DepartmentName_English || row.DepartmentID,
         renderCell: (params) => params.row.Department?.DepartmentName_English || `ID: ${params.row.DepartmentID}`
       },
       { field: "PurchaseDate", headerName: "Purchase Date", width: 125 },
@@ -347,7 +344,7 @@ export default function AssetReportsPage() {
                   <FormControl fullWidth size="small">
                     <InputLabel>Category</InputLabel>
                     <Select
-                      value={filters.categoryId ?? ""}
+                      value={String(filters.categoryId ?? "")}
                       onChange={(e) => {
                         const val = e.target.value;
                         setFilters((prev) => ({
@@ -407,7 +404,7 @@ export default function AssetReportsPage() {
                         <FormControl fullWidth size="small">
                           <InputLabel>Category</InputLabel>
                           <Select
-                            value={filters.categoryId ?? ""}
+                            value={String(filters.categoryId ?? "")}
                             onChange={(e) =>
                               setFilters((prev) => ({
                                 ...prev,

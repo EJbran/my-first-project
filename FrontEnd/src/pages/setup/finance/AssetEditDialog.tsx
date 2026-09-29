@@ -83,7 +83,7 @@ export const AssetEditDialog = ({ open, mode, asset, onClose, onSaved }: AssetEd
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: emptyValues });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<z.input<typeof schema>, unknown, FormValues>({ resolver: zodResolver(schema), defaultValues: emptyValues });
 
   useEffect(() => {
     if (!open) return;

@@ -1,4 +1,5 @@
 import express from "express";
+import { authenticate } from "../../middleware/authenticate";
 import {
   createAsset,
   deleteAsset,
@@ -11,8 +12,8 @@ const router = express.Router();
 
 router.get("/api/assets", listAssets);
 router.get("/api/assets/:id", getAssetById);
-router.post("/api/assets", createAsset);
-router.put("/api/assets/:id", updateAsset);
-router.delete("/api/assets/:id", deleteAsset);
+router.post("/api/assets", authenticate, createAsset);
+router.put("/api/assets/:id", authenticate, updateAsset);
+router.delete("/api/assets/:id", authenticate, deleteAsset);
 
 export default router;

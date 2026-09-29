@@ -60,7 +60,7 @@ export const AssetCategoryEditDialog = ({ open, mode, category, onClose, onSaved
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: emptyValues });
+  } = useForm<z.input<typeof schema>, unknown, FormValues>({ resolver: zodResolver(schema), defaultValues: emptyValues });
 
   useEffect(() => {
     if (!open) return;
