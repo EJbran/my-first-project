@@ -12,6 +12,7 @@ import {
   Chip,
   CircularProgress,
   FormControl,
+  GlobalStyles,
   InputLabel,
   MenuItem,
   Select,
@@ -309,7 +310,25 @@ export default function AssetReportsPage() {
   );
 
   return (
-    <Box>
+    <>
+      <GlobalStyles
+        styles={{
+          "@media print": {
+            "@page": { size: "landscape", margin: "10mm" },
+            "body *": { visibility: "hidden !important" },
+            ".asset-reports-print-area, .asset-reports-print-area *": { visibility: "visible !important" },
+            ".asset-reports-print-area": {
+              position: "fixed !important",
+              top: "0 !important",
+              left: "0 !important",
+              width: "100% !important",
+              maxWidth: "none !important"
+            },
+            ".asset-reports-print-area .MuiDataGrid-footerContainer": { display: "none !important" }
+          }
+        }}
+      />
+      <Box>
       <Stack spacing={3}>
         {/* Report Type Selection */}
         <Card variant="outlined">
@@ -790,7 +809,7 @@ export default function AssetReportsPage() {
             <CircularProgress size={32} />
           </Box>
         ) : (
-          <Box sx={tableContainerSx}>
+          <Box className="asset-reports-print-area" sx={tableContainerSx}>
             <DataGrid
               autoHeight
               rows={filteredAssets}
@@ -804,6 +823,7 @@ export default function AssetReportsPage() {
           </Box>
         )}
       </Stack>
-    </Box>
+      </Box>
+    </>
   );
 }
